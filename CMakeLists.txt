@@ -25,8 +25,12 @@ endif()
 
 set(SDL_GPU_VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_BUGFIX}")
 
-message("Writing version header for v${SDL_GPU_VERSION}")
-string(CONCAT VERSION_HEADER_CONTENTS "#ifndef _SDL_GPU_VERSION_H__
+if(${CMAKE_CURRENT_SOURCE_DIR}/version.txt IS_NEWER_THAN ${CMAKE_CURRENT_SOURCE_DIR}/include/SDL_gpu_version.h)
+    # This is to prevent CMake from rebuilding SDL_gpu, which is important when it is an external project in another project.
+    # This works since whenever version.txt is changed, it will be newer than SDL_gpu_version.h. The only time SDL_gpu_version.h
+    # will be newer than version.txt is when it is created or modified after the latter file.
+    message("Writing version header for v${SDL_GPU_VERSION}")
+    string(CONCAT VERSION_HEADER_CONTENTS "#ifndef _SDL_GPU_VERSION_H__
 #define _SDL_GPU_VERSION_H__
 
 #define SDL_GPU_VERSION_MAJOR ${VERSION_MAJOR}
@@ -34,7 +38,9 @@ string(CONCAT VERSION_HEADER_CONTENTS "#ifndef _SDL_GPU_VERSION_H__
 #define SDL_GPU_VERSION_PATCH ${VERSION_BUGFIX}
 
 #endif")
-file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/include/SDL_gpu_version.h ${VERSION_HEADER_CONTENTS})
+
+    file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/include/SDL_gpu_version.h ${VERSION_HEADER_CONTENTS})
+endif()
 
 set(DEFAULT_INSTALL_LIBRARY ON)
 set(DEFAULT_BUILD_SHARED ON)
@@ -88,6 +94,7 @@ elseif(EMSCRIPTEN)
   set(DEFAULT_BUILD_DEMOS OFF)
   set(DEFAULT_DISABLE_OPENGL ON)
   set(DEFAULT_DISABLE_GLES OFF)
+  set(DEFAULT_DISABLE_GLES_1 ON)
   set(DEFAULT_BUILD_SHARED OFF)
 else()
   message(" Using generic defaults.")
@@ -100,6 +107,7 @@ option(BUILD_DEMOS "Build SDL_gpu demo programs" ${DEFAULT_BUILD_DEMOS})
 option(BUILD_TESTS "Build SDL_gpu test programs" OFF)
 option(BUILD_VIDEO_TEST "Build SDL_gpu video test program (requires FFMPEG)" OFF)
 option(BUILD_TOOLS "Build SDL_gpu tool programs" OFF)
+option(BUILD_DOCS "Build SDL_gpu documentation" OFF)
 option(USE_SDL1 "Use SDL 1.2 headers and library instead of SDL 2" OFF)
 option(DISABLE_OPENGL "Disable OpenGL renderers.  Overrides specific OpenGL renderer flags." ${DEFAULT_DISABLE_OPENGL})
 option(DISABLE_GLES "Disable OpenGLES renderers.  Overrides specific GLES renderer flags." ${DEFAULT_DISABLE_GLES})
@@ -152,7 +160,9 @@ else ()
 endif ()
 
 # Find the package for SDL or SDL2
-if ( USE_SDL1 )
+if ( EMSCRIPTEN )
+	add_definitions ("-s USE_SDL=2")
+elseif ( USE_SDL1 )
 	find_package(SDL REQUIRED)
 
 	if ( NOT SDL_FOUND )
@@ -161,7 +171,7 @@ if ( USE_SDL1 )
 
 	include_directories(${SDL_INCLUDE_DIR})
 	link_libraries(${SDL_LIBRARY})
-else ( USE_SDL1 )
+else ( )
 	find_package(SDL2 REQUIRED)
 
 	if ( NOT SDL2_FOUND )
@@ -175,7 +185,7 @@ else ( USE_SDL1 )
 
 	include_directories(${SDL2_INCLUDE_DIR})
 	link_libraries(${SDL2MAIN_LIBRARY} ${SDL2_LIBRARY})
-endif( USE_SDL1 )
+endif ()
 
 # Find the package for OpenGL
 if (DISABLE_OPENGL)
@@ -323,16 +333,18 @@ if(NOT STBI_FOUND OR NOT STBI_WRITE_FOUND)
 endif(NOT STBI_FOUND OR NOT STBI_WRITE_FOUND)
 
 # add a target to generate API documentation with Doxygen
-find_package(Doxygen)
-if(DOXYGEN_FOUND)
-    set(DOXYGEN_INPUT ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/src)
-    configure_file(${CMAKE_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
-    add_custom_target(doc
-        ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        COMMENT "Generating API documentation with Doxygen" VERBATIM
-    )
-endif(DOXYGEN_FOUND)
+if (BUILD_DOCS)
+    find_package(Doxygen)
+    if(DOXYGEN_FOUND)
+        set(DOXYGEN_INPUT ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/src)
+        configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
+        add_custom_target(doc
+    `        ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            COMMENT "Generating API documentation with Doxygen" VERBATIM
+        )
+    endif(DOXYGEN_FOUND)
+endif (BUILD_DOCS)
 
 add_definitions("-Wall -pedantic")
 

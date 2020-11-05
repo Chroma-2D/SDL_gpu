@@ -6,6 +6,8 @@ See a particular renderer's *.c file for specifics. */
 #pragma warning(disable: 4514 4711 4710)
 // Disable warning: Spectre mitigation
 #pragma warning(disable: 5045)
+// Disable warning: 'type cast': conversion from 'long' to 'void *' of greater size
+#pragma warning (disable: 4312)
 #endif
 
 #if !defined(GLAPIENTRY)
@@ -1814,6 +1816,8 @@ static GPU_Target* CreateTargetFromWindow(GPU_Renderer* renderer, Uint32 windowI
             return NULL;
         }
 
+        target->context->default_textured_vertex_shader_id = v;
+        target->context->default_textured_fragment_shader_id = f;
         target->context->default_textured_shader_program = p;
 
         // Get locations of the attributes in the shader
@@ -1853,6 +1857,8 @@ static GPU_Target* CreateTargetFromWindow(GPU_Renderer* renderer, Uint32 windowI
 
         glUseProgram(p);
 
+        target->context->default_untextured_vertex_shader_id = v;
+        target->context->default_untextured_fragment_shader_id = f;
         target->context->default_untextured_shader_program = target->context->current_shader_program = p;
 
         // Get locations of the attributes in the shader

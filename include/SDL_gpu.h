@@ -1,6 +1,11 @@
 #ifndef _SDL_GPU_H__
 #define _SDL_GPU_H__
 
+#ifndef _USE_MATH_DEFINES
+#define _USE_MATH_DEFINES // So M_PI and company get defined on MSVC when we include math.h
+#endif
+#include <math.h> // Must be included before SDL.h, otherwise both try to define M_PI and we get a warning
+
 #include "SDL.h"
 #include <stdio.h>
 #include <stdarg.h>
@@ -445,6 +450,12 @@ typedef struct GPU_Context
 	/*! Window dimensions for restoring windowed mode after GPU_SetFullscreen(1,1). */
 	int stored_window_w;
 	int stored_window_h;
+	
+	/*! Shader handles used in the default shader programs */
+	Uint32 default_textured_vertex_shader_id;
+	Uint32 default_textured_fragment_shader_id;
+	Uint32 default_untextured_vertex_shader_id;
+	Uint32 default_untextured_fragment_shader_id;
 	
 	
 	
